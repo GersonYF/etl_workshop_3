@@ -1,0 +1,82 @@
+x-app-base: &app-base
+  build:
+    context: ./app
+  restart: 'no'
+
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kafka
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+    networks:
+      - dev
+
+  app-dev:
+    <<: *app-base
+    env_file: "./app/.env.local"
+    environment:
+      - GUNICORN_WORKERS=4
+      - POSTGRES_HOST=postgres
+      - KAFKA_BROKER=kafka:9092
+    volumes:
+      - ./app:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dev
+
+  jupyter:
+    build:
+      context: ./app
+    command: ["jupyter", "notebook", "--ip='*'", "--port=8888", "--no-browser", "--allow-root"]
+    volumes:
+      - ./app:/app
+    ports:
+      - 8888:8888
+    networks:
+      - dev
+    depends_on:
+      - app-dev
+
+  kafka:
+    image: apache/kafka:3.7.0
+    environment:
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    ports:
+      - 9092:9092
+      - 9093:9093
+    networks:
+      - dev
+
+
+
+
+networks:
+  dev:
+    driver: bridge
+
+volumes:
+  postgres-db-volume:
+  kafka-data:
+

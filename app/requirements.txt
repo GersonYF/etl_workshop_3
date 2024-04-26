@@ -1,0 +1,15 @@
+pydantic[email]
+pydantic-settings
+psycopg2-binary==2.9.2
+pandas
+numpy
+matplotlib
+seaborn
+wordcloud
+scipy
+statsmodels
+asyncpg
+SQLAlchemy
+uuid7
+scikit-learn
+xgboost
