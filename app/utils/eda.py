@@ -3,19 +3,26 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 import math
 
 from io import StringIO
 from wordcloud import WordCloud
 
+import seaborn as sns
+
 colors = sns.color_palette([
-    "#008000",  # Original Green
-    "#ffd700",  # Original Gold
-    "#66cdaa",  # Lighter Green
-    "#ccac00",  # Darker Gold
-    "#003366",  # Dark Midnight Blue
-    "#f5f5dc",  # Beige
-    "#809b8d"   # Cadet Grey
+    "#FFD700",  # Bright Yellow
+    "#FFA500",  # Vibrant Orange
+    "#ADD8E6",  # Light Blue
+    "#98FB98",  # Soft Green
+    "#E6E6FA",  # Lavender
+    "#FFC0CB",  # Bright Pink
+    "#D2691E",  # Chocolate
+    "#8A2BE2",  # Blue Violet
+    "#FF6347",  # Tomato Red
+    "#40E0D0",   # Turquoise
+    "#FFFFFF",  # Crisp White
 ])
 
 start_bold = "\033[1m"
@@ -272,3 +279,47 @@ def get_max_count_values(df, column):
     max_count_values = [value for value in unique_values if value_counts[value] == max_count]
     
     return max_count_values
+
+
+def get_sorted_columns(dataframes):
+    """
+    Get a list of all columns in an dict of dataframes sorted alphabetically.
+    """
+    all_columns = [(df, list(dataframes[df].columns)) for df in dataframes]
+    flattened_columns = list(set([(item, year) for year, sublist in all_columns for item in sublist]))
+    flattened_columns.sort()
+    return flattened_columns
+
+
+def plot_trends(df, x_col, y_col, title, hue='country', legend_label='Country'):
+    plt.figure(figsize=(12, 8))
+    line_plot = sns.lineplot(data=df, x=x_col, y=y_col, hue=hue, marker='o')
+
+    plt.title(title)
+    plt.xlabel(x_col.capitalize())
+    plt.ylabel(y_col.capitalize())
+    plt.legend(title=legend_label, bbox_to_anchor=(1.05, 1), loc=2)
+
+    plt.xticks(np.arange(min(df[x_col]), max(df[x_col])+1, 1.0))
+
+    for i in range(df.shape[0]):
+        line_plot.text(df.iloc[i][x_col], df.iloc[i][y_col] + 0.02,
+                       f"{df.iloc[i][y_col]:.2f}", 
+                       horizontalalignment='center')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def get_feature_names(num_attribs, full_pipeline, cat_attribs):
+    """
+    Get feature names from the full pipeline.
+    """
+    num_features = num_attribs
+    cat_encoder = full_pipeline.named_transformers_['cat']
+    cat_one_hot_attribs = []
+    for i in range(len(cat_encoder.categories_)):
+        cat_one_hot_attribs.extend(cat_attribs[i] + "_" + str(j) for j in cat_encoder.categories_[i])
+
+    feature_names = num_features + cat_one_hot_attribs
+    return feature_names
